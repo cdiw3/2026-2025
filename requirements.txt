@@ -5,3 +5,4 @@ plotly
 qrcode
 streamlit_qrcode_scanner
 requests
+hashlib
