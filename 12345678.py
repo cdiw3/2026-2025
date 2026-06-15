@@ -571,22 +571,33 @@ if st.session_state.user_role == "staff":
             """)
 
         st.markdown("---")
-        st.markdown("#### ⌨️ المسح الليزري السريع / الإدخال اليدوي المباشر")
-        st.caption("ملاحظة: هذا الحقل مبرمج ليعمل تلقائياً فوراً عند استخدام مسدس المسح (Barcode Scanner) دون الحاجة للنقر على زر إرسال.")
+        st.markdown("#### ⌨️ التدقيق اليدوي وقارئ مسدس الليزر (المؤمن بزر تأكيد)")
+        st.caption("ملاحظة: اكتب الرقم المكون من 4 خانات ثم اضغط على زر 'البحث والتدقيق الميداني' أو اضغط Enter.")
         
-        # حقل ذكي خارج الـ Form ليعمل بمجرد إدخال القيمة (مفيد جداً لمسدسات القراءة الليزرية)
-        typed_code = st.text_input(
-            "وجه قارئ الليزر هنا أو اكتب الرقم يدوياً (ثم اضغط Enter):", 
-            placeholder="مثال: 0045", 
-            key="instant_manual_scan_field"
-        )
-        
-        if typed_code:
-            cleaned_typed = typed_code.strip().zfill(4)
-            r_key, r_msg = process_and_verify_scanned_code_extended(cleaned_typed, "staff")
-            st.session_state.last_staff_outcome = (r_key, r_msg)
-            # تفريغ الحقل فوراً للاستعداد للقراءة التالية
-            st.rerun()
+        # إنشاء نموذج (Form) مخصص لمنع الترحيل العشوائي إلا عند الضغط على الزر
+        with st.form(key="manual_scan_secure_form", clear_on_submit=True):
+            typed_code = st.text_input(
+                "أدخل رقم هوية الطالب أو كود الكارت يدوياً:", 
+                placeholder="مثال: 0045", 
+                key="secure_manual_scan_field"
+            )
+            
+            # زر البحث والتدقيق المخصص للموظف الميداني
+            submit_search = st.form_submit_button("🔍 البحث والتدقيق الميداني العاجل")
+            
+            if submit_search and typed_code:
+                # تنظيف القيمة وجعلها دائماً 4 خانات (مثل 0045)
+                cleaned_typed = typed_code.strip().zfill(4)
+                
+                # معالجة الكود والتحقق من قواعد البيانات
+                r_key, r_msg = process_and_verify_scanned_code_extended(cleaned_typed, "staff")
+                st.session_state.last_staff_outcome = (r_key, r_msg)
+                
+                # إظهار توست سريع لتأكيد نقرة الموظف
+                st.toast(f"جاري تدقيق المعرف: {cleaned_typed}", icon="🔎")
+                
+                # تحديث الصفحة لعرض النتيجة الخضراء/الحمراء فوراً في الأعلى وتصفير الحقل
+                st.rerun()
     # --- النظام الفرعي 2: نظام إدارة الملاحظات وتتبع الطلاب ---
     with staff_sub_tabs[1]:
         st.markdown("### 📝 وحدة إثبات وتتبع الملاحظات الميدانية الفورية")
