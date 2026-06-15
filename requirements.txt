@@ -3,3 +3,4 @@ numpy
 pandas
 plotly
 qrcode
+streamlit_qrcode_scanner
