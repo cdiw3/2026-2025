@@ -20,12 +20,12 @@ import hashlib
 from datetime import datetime, timedelta
 from io import BytesIO
 
-# محاولة استيراد مكتبات الرسومات البيانية المتقدمة لتوسيع النظام
+## محاولة استيراد مكتبة الماسح الذكي للجوال
 try:
-    import plotly.graph_objects as go # type: ignore
-    PLOTLY_AVAILABLE = True
+    from streamlit_qrcode_scanner import qrcode_scanner
+    SCANNER_AVAILABLE = True
 except ImportError:
-    PLOTLY_AVAILABLE = False
+    SCANNER_AVAILABLE = False
 
 # محاولة استيراد مكتبة توليد الـ QR Code
 try:
@@ -862,17 +862,38 @@ if st.session_state.user_role == "admin":
         st.markdown(f"• الوقت المتوقع لامتلاء المقاعد واكتمال الدخول: الساعة `{ai_metrics['predicted_time']}`")
         st.markdown("</div>", unsafe_allow_html=True)
         
-        if PLOTLY_AVAILABLE:
-            st.markdown("#### 📊 مخطط بياني حي لنسب الحضور والغياب والملاحظات")
-            fig = go.Figure(data=[go.Pie(
-                labels=['حاضر داخل القاعة', 'غائب / خارج البوابات', 'خروج مؤقت'],
-                values=[curr_att - admin_temp_out_count, rem_abs, admin_temp_out_count],
-                hole=.4,
-                marker_colors=['#10b981', '#1f2937', '#f59e0b']
-            )])
-            fig.update_layout(template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-            st.plotly_chart(fig, use_container_width=True)
-
+# البديل المدمج والمستقر لـ Plotly باستخدام مكتبة Altair المدعومة تلقائياً في Streamlit
+        st.markdown("#### 📊 مخطط بياني حي لنسب الحضور والغياب والملاحظات")
+        
+        # تجهيز البيانات في شكل DataFrame مناسب للرسم
+        chart_data = pd.DataFrame({
+            'الحالة الحركية للطلاب': ['حاضر داخل القاعة', 'غائب / خارج البوابات', 'خروج مؤقت'],
+            'عدد الطلاب': [curr_att - admin_temp_out_count, rem_abs, admin_temp_out_count]
+        })
+        
+        try:
+            import altair as alt
+            # بناء مخطط شريطي (Bar Chart) احترافي يتناسق مع ألوان الواجهة
+            luxury_chart = alt.Chart(chart_data).mark_bar(cornerRadiusTopLeft=8, cornerRadiusTopRight=8).encode(
+                x=alt.X('الحالة الحركية للطلاب:N', sort=None, axis=alt.Axis(labelAngle=0, title=None)),
+                y=alt.Y('عدد الطلاب:Q', title='إجمالي العدد'),
+                color=alt.Color('الحالة الحركية للطلاب:N', scale=alt.Scale(
+                    domain=['حاضر داخل القاعة', 'غائب / خارج البوابات', 'خروج مؤقت'],
+                    range=['#10b981', '#374151', '#f59e0b'] # الأخضر، الرمادي الداكن، والبرتقالي
+                ), legend=None)
+            ).properties(
+                height=300
+            ).configure_view(
+                strokeWidth=0
+            ).configure_axis(
+                grid=False
+            )
+            
+            st.altair_chart(luxury_chart, use_container_width=True)
+            
+        except Exception:
+            # حل احتياطي فوري فائق البساطة في حال عدم توفر Altair لأي سبب
+            st.bar_chart(data=chart_data, x='الحالة الحركية للطلاب', y='عدد الطلاب', use_container_width=True)
     # --- تبويب المشرف 4: منشئ ومولد كروت التخرج الرسمية المعتمدة ---
     with admin_tabs_container[3]:
         st.markdown("### 🗂️ إصدار وتوليد بطاقات العبور والـ QR الرسمية")
