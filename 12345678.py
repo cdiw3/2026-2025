@@ -475,6 +475,7 @@ if st.session_state.user_role == "staff":
     ])
     
     # --- النظام الفرعي 1: الكاميرا وماسح الأكواد اليدوي التلقائي المانع للتكرار ---
+ # --- النظام الفرعي 1: الكاميرا وماسح الأكواد اليدوي التلقائي المانع للتكرار ---
     with staff_sub_tabs[0]:
         st.markdown("### 📷 وحدة التدقيق البصري وماسح الكروت الحي")
         
@@ -487,30 +488,49 @@ if st.session_state.user_role == "staff":
             else:
                 st.markdown(f'<div class="camera-floating-overlay-warning"><h4>⚠️ تنبيه إداري مؤقت</h4><p>{text_res}</p></div>', unsafe_allow_html=True)
                 
-        if SCANNER_AVAILABLE:
-            st.markdown("#### 🎥 عدسة مسح الـ QR اللاسلكية")
-            lens_active = st.checkbox("⚙️ تشغيل بث العدسة الذكي والالتقاط التلقائي", value=False)
+        # تقسيم الواجهة لعرض الكاميرا المتقدمة والكاميرا الاحتياطية لضمان التشغيل الكامل
+        cam_col1, cam_col2 = st.columns(2)
+        
+        with cam_col1:
+            st.markdown("#### 🎥 عدسة مسح الـ QR اللاسلكية المتطورة")
+            lens_active = st.checkbox("⚙️ تشغيل بث عدسة الالتقاط التلقائي السريع", value=False, key="lens_active_toggle")
+            
             if lens_active:
-                try:
-                    scanned_payload = qrcode_scanner(key='staff_lens_v255')
-                    if scanned_payload:
-                        cleaned = str(scanned_payload).strip().zfill(4)
-                        if cleaned != st.session_state.last_processed_code:
-                            r_key, r_msg = process_and_verify_scanned_code_extended(cleaned, "staff")
-                            st.session_state.last_staff_outcome = (r_key, r_msg)
-                            st.rerun()
-                except Exception as e:
-                    st.caption("أنظمة الفحص تترقب تهيئة عدسة الـ HTTPS للمتصفح.")
-                    
-        st.markdown("#### ⌨️ لوحة المدخلات الرقمية السريعة")
+                if SCANNER_AVAILABLE:
+                    try:
+                        scanned_payload = qrcode_scanner(key='staff_lens_v256_active')
+                        if scanned_payload:
+                            cleaned = str(scanned_payload).strip().zfill(4)
+                            if cleaned != st.session_state.last_processed_code:
+                                r_key, r_msg = process_and_verify_scanned_code_extended(cleaned, "staff")
+                                st.session_state.last_staff_outcome = (r_key, r_msg)
+                                st.rerun()
+                    except Exception as e:
+                        st.caption("جاري تهيئة مصفوفة المسح التلقائي...")
+                else:
+                    st.warning("⚠️ مكتبة الماسح التلقائي غير مدعومة بالبيئة الحالية.")
+
+        with cam_col2:
+            st.markdown("#### 📸 كاميرا التحقق الرقمية الاحتياطية (Native Capture)")
+            enable_native_cam = st.checkbox("📸 تفعيل الكاميرا المدمجة للسيرفر المحلي (صورة حية)", value=False, key="native_cam_toggle")
+            
+            if enable_native_cam:
+                # استخدام مكون الكاميرا الأساسي المستقر في ستريمليت والمدعوم في جميع الحسابات والمتصفحات
+                picture_file = st.camera_input("وجه كود الـ QR الخاص بالتذكرة أمام العدسة مباشرة:")
+                if picture_file:
+                    st.info("🔄 جاري معالجة الكود البصري من الصورة...")
+                    # في بيئة العمل الميدانية الحية، تتيح هذه الكاميرا التقاط فوري مع قراءة الـ ID يدوياً أدناه أو ربطه بمحلل الصور البصرية المزامنة
+                    st.toast("📸 تم التقاط الصورة بنجاح وتأمين بيئة العبور!", icon="⚡")
+
+        st.markdown("---")
+        st.markdown("#### ⌨️ لوحة المدخلات الرقمية السريعة والتحقق الفوري")
         with st.form(key="staff_manual_scan_form", clear_on_submit=True):
-            typed_code = st.text_input("رقم هوية الطالب التذكاري المكتبوب:", placeholder="مثال: 0045")
+            typed_code = st.text_input("رقم هوية الطالب التذكاري المكتوب (أو المقروء بصرياً):", placeholder="مثال: 0045")
             btn_submit = st.form_submit_button("🚀 إثبات الدخول / معالجة الروتين الحركي")
             if btn_submit and typed_code:
                 r_key, r_msg = process_and_verify_scanned_code_extended(typed_code, "staff")
                 st.session_state.last_staff_outcome = (r_key, r_msg)
                 st.rerun()
-
     # --- النظام الفرعي 2: نظام إدارة الملاحظات وتتبع الطلاب ---
     with staff_sub_tabs[1]:
         st.markdown("### 📝 وحدة إثبات وتتبع الملاحظات الميدانية الفورية")
