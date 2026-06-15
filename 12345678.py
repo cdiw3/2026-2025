@@ -20,24 +20,42 @@ import hashlib
 from datetime import datetime, timedelta
 from io import BytesIO
 import requests
+import hashlib
 def send_telegram_notification(message):
-    """دالة إرسال التنبيهات الفورية لهاتف المشرف عبر التليجرام"""
-    # استبدل هذه القيم بالقيم الخاصة بك التي حصلت عليها من BotFather
-    TELEGRAM_TOKEN = "7146882882:AAGxRQpq6gK-JP_-VIuYnYkU8P_plXa1zlg"
-    TELEGRAM_CHAT_ID = "1374850835"
-
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    """دالة مطورة لإرسال التنبيهات الفورية لهاتف المشرف عبر التليجرام مرة واحدة فقط"""
+    # تهيئة ذاكرة منع التكرار في الجلسة إن لم تكن موجودة
+    if "sent_telegram_hashes" not in st.session_state:
+        st.session_state["sent_telegram_hashes"] = set()
+        
+    # تم وضع التوكن والـ ID الخاصين بك كقيم افتراضية ثابتة
+    token = st.session_state.get("tg_bot_token", "7146882882:AAGxRQpq6gK-JP_-VIuYnYkU8P_plXa1zlg")
+    chat_id = st.session_state.get("tg_chat_id", "1374850835")
+    
+    if not token or not chat_id:
+        return False
+        
+    # توليد بصمة فريدة (Hash) لنص الرسالة لمنع تكرارها عند الـ Rerun
+    message_hash = hashlib.md5(message.encode('utf-8')).hexdigest()
+    
+    # إذا كانت الرسالة أُرسلت من قبل في هذه الجلسة، اخرج فوراً دون إرسال مجدد
+    if message_hash in st.session_state["sent_telegram_hashes"]:
+        return True 
+        
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": f"🔔 [نظام حفل التخرج 2026]\n\n{message}",
+        "chat_id": chat_id,
+        "text": f"🔔 *[نظام TITAN - حفل التخرج 2026]*\n\n{message}",
         "parse_mode": "Markdown"
     }
     try:
-        # إرسال الطلب في الخلفية دون تعطيل واجهة الموظف الميداني
-        requests.post(url, json=payload, timeout=3)
+        response = requests.post(url, json=payload, timeout=4)
+        if response.status_code == 200:
+            # حفظ بصمة الرسالة بنجاح لمنع تكرارها
+            st.session_state["sent_telegram_hashes"].add(message_hash)
+            return True
+        return False
     except Exception:
-        pass # تجاوز الخطأ في حال انقطاع الإنترنت مؤقتاً بالموقع
-## محاولة استيراد مكتبة الماسح الذكي للجوال
+        return False
 try:
     from streamlit_qrcode_scanner import qrcode_scanner
     SCANNER_AVAILABLE = True
