@@ -19,7 +19,24 @@ import random
 import hashlib
 from datetime import datetime, timedelta
 from io import BytesIO
+import requests
+def send_telegram_notification(message):
+    """دالة إرسال التنبيهات الفورية لهاتف المشرف عبر التليجرام"""
+    # استبدل هذه القيم بالقيم الخاصة بك التي حصلت عليها من BotFather
+    TELEGRAM_TOKEN = "7146882882:AAGxRQpq6gK-JP_-VIuYnYkU8P_plXa1zlg"
+    TELEGRAM_CHAT_ID = "1374850835"
 
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": f"🔔 [نظام حفل التخرج 2026]\n\n{message}",
+        "parse_mode": "Markdown"
+    }
+    try:
+        # إرسال الطلب في الخلفية دون تعطيل واجهة الموظف الميداني
+        requests.post(url, json=payload, timeout=3)
+    except Exception:
+        pass # تجاوز الخطأ في حال انقطاع الإنترنت مؤقتاً بالموقع
 ## محاولة استيراد مكتبة الماسح الذكي للجوال
 try:
     from streamlit_qrcode_scanner import qrcode_scanner
@@ -306,6 +323,10 @@ def add_log_transaction_extended(student_id_code, status_tag, narrative_details,
         "التفاصيل والبيان": narrative_details,
         "بواسطة": staff_user
     })
+    # 🤖 إرسال إشعارات فورية لتليجرام المشرف في الحالات الحرجة فقط لمنع الإزعاج
+    if status_tag in ["عارض طبي", "خارج النطاق", "رفض دخول مكرر", "عطل فني"]:
+        telegram_msg = f"⚠️ *تنبيه حرج من البوابات الميدانية*\n• *نوع الإجراء:* {status_tag}\n• *المعرف:* {student_id_code}\n• *التفاصيل:* {narrative_details}\n• *بواسطة:* {staff_user} (الساعة {current_time_stamp_str})"
+        send_telegram_notification(telegram_msg)
 
 def process_and_verify_scanned_code_extended(raw_input_payload, user_context="staff"):
     if not raw_input_payload:
@@ -686,10 +707,12 @@ if st.session_state.user_role == "staff":
                             "مستوى الخطورة": m["severity"],
                             "تفاصيل البيان الطبي": m["desc"]
                         })
+
             if med_records:
                 st.dataframe(pd.DataFrame(med_records), use_container_width=True, hide_index=True)
             else:
                 st.caption("👍 لا توجد بلاغات طبية طارئة مسجلة حتى اللحظة.")
+
 
     # --- النظام الفرعي 5: نظام بلاغات الأعطال التقنية للبوابات ---
     with staff_sub_tabs[4]:
@@ -710,6 +733,8 @@ if st.session_state.user_role == "staff":
                     "status": "قيد المراجعة الفنية"
                 }
                 GLOBAL_SERVER_CORE_DATA["it_tickets"].append(ticket_payload)
+                send_telegram_notification(f"🛠️ *بلاغ عطل تقني جديد*\n• *الموقع:* {gate_num}\n• *نوع المشكلة:* {issue_type}\n• *الوصف:* {issue_desc}")
+
                 st.toast("⚡ تم رفع التذكرة لقسم هندسة البرمجيات والشبكات بالموقع", icon="🛠️")
                 time.sleep(0.1)
                 st.rerun()
