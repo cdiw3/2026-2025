@@ -476,9 +476,11 @@ if st.session_state.user_role == "staff":
     
     # --- النظام الفرعي 1: الكاميرا وماسح الأكواد اليدوي التلقائي المانع للتكرار ---
  # --- النظام الفرعي 1: الكاميرا وماسح الأكواد اليدوي التلقائي المانع للتكرار ---
+# --- النظام الفرعي 1: الكاميرا وماسح الأكواد المطور والتلقائي المانع للتكرار ---
     with staff_sub_tabs[0]:
-        st.markdown("### 📷 وحدة التدقيق البصري وماسح الكروت الحي")
+        st.markdown("### 📷 وحدة التدقيق البصري وماسح الكروت الحي المطور")
         
+        # عرض نتيجة المسح الأخيرة بشكل بارز في الأعلى
         if st.session_state.last_staff_outcome:
             status_res, text_res = st.session_state.last_staff_outcome
             if status_res == "success_entry":
@@ -488,49 +490,60 @@ if st.session_state.user_role == "staff":
             else:
                 st.markdown(f'<div class="camera-floating-overlay-warning"><h4>⚠️ تنبيه إداري مؤقت</h4><p>{text_res}</p></div>', unsafe_allow_html=True)
                 
-        # تقسيم الواجهة لعرض الكاميرا المتقدمة والكاميرا الاحتياطية لضمان التشغيل الكامل
-        cam_col1, cam_col2 = st.columns(2)
+        # تقسيم الواجهة لعرض المسح الذكي بجانب التعليمات الميدانية
+        cam_col1, cam_col2 = st.columns([2, 1])
         
         with cam_col1:
-            st.markdown("#### 🎥 عدسة مسح الـ QR اللاسلكية المتطورة")
-            lens_active = st.checkbox("⚙️ تشغيل بث عدسة الالتقاط التلقائي السريع", value=False, key="lens_active_toggle")
+            st.markdown("#### 🎥 عدسة مسح الـ QR الذكية")
+            lens_active = st.toggle("⚙️ تفعيل البث المباشر للكاميرا وقراءة الكروت فوراً", value=True, key="lens_active_toggle")
             
             if lens_active:
                 if SCANNER_AVAILABLE:
                     try:
-                        scanned_payload = qrcode_scanner(key='staff_lens_v256_active')
+                        # تشغيل الماسح بشكل مستمر ومباشر
+                        scanned_payload = qrcode_scanner(key='ultra_gate_live_scanner_2026')
+                        
                         if scanned_payload:
-                            cleaned = str(scanned_payload).strip().zfill(4)
-                            if cleaned != st.session_state.last_processed_code:
-                                r_key, r_msg = process_and_verify_scanned_code_extended(cleaned, "staff")
+                            # تنظيف المدخلات وتحويلها لتنسيق 4 خانات
+                            cleaned_code = str(scanned_payload).strip().zfill(4)
+                            
+                            # شرط هام لمنع حلقة التكرار اللانهائية لنفس الكود المفحوص
+                            if cleaned_code != st.session_state.last_processed_code:
+                                r_key, r_msg = process_and_verify_scanned_code_extended(cleaned_code, "staff")
                                 st.session_state.last_staff_outcome = (r_key, r_msg)
+                                st.toast(f"تمت معالجة الكود: {cleaned_code}", icon="⚡")
+                                time.sleep(0.4) # مهلة بسيطة لاستقرار المعالجة
                                 st.rerun()
                     except Exception as e:
-                        st.caption("جاري تهيئة مصفوفة المسح التلقائي...")
+                        st.error(f"حدث خطأ أثناء تشغيل الكاميرا: {str(e)}")
                 else:
-                    st.warning("⚠️ مكتبة الماسح التلقائي غير مدعومة بالبيئة الحالية.")
+                    st.warning("⚠️ مكتبة `streamlit_qrcode_scanner` غير مثبتة في البيئة الحالية. سيتم الاعتماد على المسح السريع أدناه.")
 
         with cam_col2:
-            st.markdown("#### 📸 كاميرا التحقق الرقمية الاحتياطية (Native Capture)")
-            enable_native_cam = st.checkbox("📸 تفعيل الكاميرا المدمجة للسيرفر المحلي (صورة حية)", value=False, key="native_cam_toggle")
-            
-            if enable_native_cam:
-                # استخدام مكون الكاميرا الأساسي المستقر في ستريمليت والمدعوم في جميع الحسابات والمتصفحات
-                picture_file = st.camera_input("وجه كود الـ QR الخاص بالتذكرة أمام العدسة مباشرة:")
-                if picture_file:
-                    st.info("🔄 جاري معالجة الكود البصري من الصورة...")
-                    # في بيئة العمل الميدانية الحية، تتيح هذه الكاميرا التقاط فوري مع قراءة الـ ID يدوياً أدناه أو ربطه بمحلل الصور البصرية المزامنة
-                    st.toast("📸 تم التقاط الصورة بنجاح وتأمين بيئة العبور!", icon="⚡")
+            st.markdown("#### 💡 تعليمات العبور الذكي")
+            st.info("""
+            * **التلقائية:** ضع كود الـ QR أمام الكاميرا، وسيقوم النظام باعتماده فوراً دون الحاجة لضغط أي زر.
+            * **تصفير الحالة:** الإشعار بالأعلى يتغير تلقائياً مع كل خريج جديد يعبر البوابة.
+            * **الخروج المؤقت:** إذا كان الطالب مسجلاً (خروج مؤقت)، سيتعرف النظام عليه ويعيده كـ (حاضر) تلقائياً.
+            """)
 
         st.markdown("---")
-        st.markdown("#### ⌨️ لوحة المدخلات الرقمية السريعة والتحقق الفوري")
-        with st.form(key="staff_manual_scan_form", clear_on_submit=True):
-            typed_code = st.text_input("رقم هوية الطالب التذكاري المكتوب (أو المقروء بصرياً):", placeholder="مثال: 0045")
-            btn_submit = st.form_submit_button("🚀 إثبات الدخول / معالجة الروتين الحركي")
-            if btn_submit and typed_code:
-                r_key, r_msg = process_and_verify_scanned_code_extended(typed_code, "staff")
-                st.session_state.last_staff_outcome = (r_key, r_msg)
-                st.rerun()
+        st.markdown("#### ⌨️ المسح الليزري السريع / الإدخال اليدوي المباشر")
+        st.caption("ملاحظة: هذا الحقل مبرمج ليعمل تلقائياً فوراً عند استخدام مسدس المسح (Barcode Scanner) دون الحاجة للنقر على زر إرسال.")
+        
+        # حقل ذكي خارج الـ Form ليعمل بمجرد إدخال القيمة (مفيد جداً لمسدسات القراءة الليزرية)
+        typed_code = st.text_input(
+            "وجه قارئ الليزر هنا أو اكتب الرقم يدوياً (ثم اضغط Enter):", 
+            placeholder="مثال: 0045", 
+            key="instant_manual_scan_field"
+        )
+        
+        if typed_code:
+            cleaned_typed = typed_code.strip().zfill(4)
+            r_key, r_msg = process_and_verify_scanned_code_extended(cleaned_typed, "staff")
+            st.session_state.last_staff_outcome = (r_key, r_msg)
+            # تفريغ الحقل فوراً للاستعداد للقراءة التالية
+            st.rerun()
     # --- النظام الفرعي 2: نظام إدارة الملاحظات وتتبع الطلاب ---
     with staff_sub_tabs[1]:
         st.markdown("### 📝 وحدة إثبات وتتبع الملاحظات الميدانية الفورية")
