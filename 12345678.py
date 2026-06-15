@@ -20,7 +20,7 @@ import hashlib
 from datetime import datetime, timedelta
 from io import BytesIO
 import requests
-import hashlib
+import  hashlib
 def send_telegram_notification(message):
     """دالة مطورة لإرسال التنبيهات الفورية لهاتف المشرف عبر التليجرام مرة واحدة فقط"""
     # تهيئة ذاكرة منع التكرار في الجلسة إن لم تكن موجودة
@@ -827,7 +827,9 @@ if st.session_state.user_role == "admin":
         "📈 التحليلات البيانية ومعدل التدفق", 
         "🗂️ منشئ ومولد كروت التخرج المعتمدة",
         "🛠️ مركز بلاغات الأعطال التقنية",
-        "📑 السجل الرقابي العام وتصدير التقارير"
+        "📑 السجل الرقابي العام وتصدير التقارير",
+        "بوت التيليقرام التفاعلي للمراقبة والاشعارات"
+
     ])
 
     # --- تبويب المشرف 1: منفذ الاستعلام المباشر ---
@@ -1006,8 +1008,52 @@ if st.session_state.user_role == "admin":
             )
         else:
             st.info("السجلات نظيفة ومستعدة لاستقبال قراءات وملاحظات موظفي البوابات الميدانية.")
+    # --- التبويب المطور: التحكم ببوت التليجرام الذكي لمنع التكرار لعام 2026 ---
+        with admin_tabs_container[6]: # تأكد أن الرقم يطابق ترتيب التبويب في المصفوفة أعلاه (0, 1, 2, 3)
+            st.markdown("### 🤖 مركز التحكم ببوت الإشعارات الفورية (Telegram Cyber-Bot)")
+            st.caption("يتيح هذا القسم للمشرف ربط النظام بهاتفه الشخصي لاستقبال البلاغات الطبية، الأمنية، والأعطال التقنية حياً ولحظياً.")
+            
+            # تهيئة متغيرات الحفظ ببياناتك الحقيقية
+            if "tg_bot_token" not in st.session_state:
+                st.session_state["tg_bot_token"] = "7146882882:AAGxRQpq6gK-JP_-VIuYnYkU8P_plXa1zlg"
+            if "tg_chat_id" not in st.session_state:
+                st.session_state["tg_chat_id"] = "1374850835"
 
-
+# واجهة إدخال البيانات المدمج بها التوكن والمعرف الخاص بك تلقائياً
+            tg_col1, tg_col2 = st.columns(2)
+            with tg_col1:
+                bot_token_input = st.text_input(
+                    "🔑 رمز توكن البوت (API Token):", 
+                    value=st.session_state.get("tg_bot_token", "7146882882:AAGxRQpq6gK-JP_-VIuYnYkU8P_plXa1zlg"),
+                    type="password",
+                    help="تحصل عليه من حساب @BotFather الرسمي في تليجرام."
+                )
+            with tg_col2:
+                chat_id_input = st.text_input(
+                    "🆔 معرف الدردشة الشخصي (Chat ID):", 
+                    value=st.session_state.get("tg_chat_id", "1374850835"),
+                    help="رقم حسابك الشخصي المستلم للإشعارات."
+                )
+            
+            # حفظ التعديلات في الـ session_state إذا قمت بتغييرها مستقبلاً من الواجهة
+            if "tg_bot_token" not in st.session_state or bot_token_input != st.session_state["tg_bot_token"] or chat_id_input != st.session_state["tg_chat_id"]:
+                st.session_state["tg_bot_token"] = bot_token_input
+                st.session_state["tg_chat_id"] = chat_id_input
+                # التنبيه يظهر فقط في حال قمت بتغيير النص المكتوب يدوياً
+                if bot_token_input != "7146882882:AAGxRQpq6gK-JP_-VIuYnYkU8P_plXa1zlg" or chat_id_input != "1374850835":
+                    st.toast("⚙️ تم تحديث إعدادات البوت بنجاح!", icon="💾")
+            
+            st.markdown("#### 🧪 اختبار جودة الاتصال بالسيرفر")
+            test_msg = st.text_area("نص الرسالة التجريبية:", value="استقبال ممتاز! نظام بوابة التخرج الذكي TITAN متصل ومستقر بنسبة 100%. 🚀")
+            
+            if st.button("⚡ إرسال رسالة تجريبية هاتفية الآن", key="test_tg_btn"):
+                with st.spinner("جاري الاتصال بخوادم تليجرام وفحص التوكن..."):
+                    unique_test_msg = f"{test_msg}\n\n⏱️ وسم التحقق الميداني: {datetime.now().strftime('%H:%M:%S')}"
+                    success = send_telegram_notification(f"🧪 *فحص اتصال ناجح*\n\n{unique_test_msg}")
+                    if success:
+                        st.success("🟢 تمت العملية بنجاح! تحقق من تطبيق التليجرام في هاتفك الآن.")
+                    else:
+                        st.error("🔴 فشل الإرسال. تأكد من أنك قمت بعمل Start للبوت الخاص بك أولاً داخل تطبيق تليجرام لتسمح له بمراسلتك.")
 # =================================================================================
 # فحص سلامة مصفوفات الـ 600 طالب (Self-Testing Integrity Bounds)
 # =================================================================================
