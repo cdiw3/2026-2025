@@ -18,9 +18,13 @@ import math
 import random
 import hashlib
 from datetime import datetime, timedelta
+def get_saudi_time():
+    """جلب الوقت الحالي بدقة حسب توقيت مكة المكرمة (+3 GMT) لحل مشكلة السيرفرات السحابية"""
+    # جلب وقت السيرفر العالمي UTC ثم إضافة 3 ساعات كاملة لتطابق توقيت السعودية
+    saudi_now = datetime.utcnow() + timedelta(hours=3)
+    return saudi_now
 from io import BytesIO
 import requests
-import  hashlib
 def send_telegram_notification(message):
     """دالة مطورة لإرسال التنبيهات الفورية لهاتف المشرف عبر التليجرام مرة واحدة فقط"""
     # تهيئة ذاكرة منع التكرار في الجلسة إن لم تكن موجودة
@@ -240,8 +244,8 @@ def get_monumental_server_shared_database_instance():
             "current_location": "خارج القاعة",
             "ticket_assigned": "الأصلية",
             "risk_score": 0.0,
-            "last_update": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
+            "last_update": get_saudi_time().strftime("%Y-%m-%d %H:%M:%S") 
+           }
         
     return {
         "student_db": initial_student_dictionary_store,
@@ -270,7 +274,7 @@ def initialize_monumental_browser_session_states():
     if "last_processed_code" not in st.session_state:
         st.session_state.last_processed_code = ""
     if "ai_start_time" not in st.session_state:
-        st.session_state.ai_start_time = datetime.now() - timedelta(minutes=15)
+        st.session_state.ai_start_time = get_saudi_time() - timedelta(minutes=15)
     
     # حفظ التبويبات النشطة حتى لا تضيع عند عمل الـ Rerun للموظف والادمن
     if "staff_current_tab" not in st.session_state:
@@ -333,7 +337,7 @@ def calculate_monumental_ai_predictions():
 # معالجة المعاملات وحالات الدخول والتكرار المانعة للتجمد الميداني
 # =================================================================================
 def add_log_transaction_extended(student_id_code, status_tag, narrative_details, staff_user="ميداني"):
-    current_time_stamp_str = datetime.now().strftime("%H:%M:%S")
+    current_time_stamp_str = get_saudi_time().strftime("%H:%M:%S")  
     GLOBAL_SERVER_CORE_DATA["logs"].insert(0, {
         "التوقيت": current_time_stamp_str,
         "رقم هوية الطالب": student_id_code,
@@ -1048,7 +1052,7 @@ if st.session_state.user_role == "admin":
             
             if st.button("⚡ إرسال رسالة تجريبية هاتفية الآن", key="test_tg_btn"):
                 with st.spinner("جاري الاتصال بخوادم تليجرام وفحص التوكن..."):
-                    unique_test_msg = f"{test_msg}\n\n⏱️ وسم التحقق الميداني: {datetime.now().strftime('%H:%M:%S')}"
+                    unique_test_msg = f"{test_msg}\n\n⏱️ وسم التحقق الميداني: {get_saudi_time().strftime('%H:%M:%S')}" 
                     success = send_telegram_notification(f"🧪 *فحص اتصال ناجح*\n\n{unique_test_msg}")
                     if success:
                         st.success("🟢 تمت العملية بنجاح! تحقق من تطبيق التليجرام في هاتفك الآن.")
