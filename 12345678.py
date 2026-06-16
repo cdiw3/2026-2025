@@ -342,7 +342,7 @@ initialize_monumental_browser_session_states()
 # الثوابت الأمنية الحاكمة وصلاحيات الوصول العليا (Security Guard System)
 # =================================================================================
 SYSTEM_CAPACITY_LIMIT = 600
-ADMIN_ACCESS_SECRET = "adcdiw3Here@"  
+ADMIN_ACCESS_SECRET = "0590006887"  
 STAFF_ACCESS_SECRET = "1234567"       
 
 
