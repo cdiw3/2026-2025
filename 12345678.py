@@ -25,6 +25,59 @@ def get_saudi_time():
     return saudi_now
 from io import BytesIO
 import requests
+import json
+
+def save_system_data_backup():
+    """دالة حفظ نسخة احتياطية من البيانات على القرص الصلب لمنع الضياع"""
+    try:
+        backup_data = {
+            "student_db": GLOBAL_SERVER_CORE_DATA["student_db"],
+            "logs": GLOBAL_SERVER_CORE_DATA["logs"],
+            "medical_logs": GLOBAL_SERVER_CORE_DATA["medical_logs"],
+            "it_tickets": GLOBAL_SERVER_CORE_DATA["it_tickets"]
+        }
+        with open("titan_backup.json", "w", encoding="utf-8") as f:
+            json.dump(backup_data, f, ensure_ascii=False, indent=4)
+    except Exception:
+        pass
+
+def verify_monumental_system_integrity_bounds():
+    """الدالة المركزية المطورة لعام 2026: تستعيد البيانات من النسخة الاحتياطية أو تولدها"""
+    global GLOBAL_SERVER_CORE_DATA
+    
+    # 1. محاولة استعادة البيانات من الملف الاحتياطي أولاً إذا كان السيرفر قد أعاد التشغيل
+    if os.path.exists("titan_backup.json"):
+        try:
+            with open("titan_backup.json", "r", encoding="utf-8") as f:
+                loaded_data = json.load(f)
+                if loaded_data and "student_db" in loaded_data:
+                    GLOBAL_SERVER_CORE_DATA["student_db"] = loaded_data["student_db"]
+                    GLOBAL_SERVER_CORE_DATA["logs"] = loaded_data.get("logs", [])
+                    GLOBAL_SERVER_CORE_DATA["medical_logs"] = loaded_data.get("medical_logs", [])
+                    GLOBAL_SERVER_CORE_DATA["it_tickets"] = loaded_data.get("it_tickets", [])
+                    st.session_state["GLOBAL_SERVER_CORE_DATA"] = GLOBAL_SERVER_CORE_DATA
+        except Exception:
+            pass
+
+    # 2. إذا كان الملف غير موجود أو فارغ، يتم التوليد التلقائي للنطاق الأساسي
+    try:
+        for i in range(1, 101):
+            key = f"{i:04d}"
+            if key not in GLOBAL_SERVER_CORE_DATA["student_db"]:
+                GLOBAL_SERVER_CORE_DATA["student_db"][key] = {
+                    "status": "غائب",
+                    "notes": [],
+                    "medical_logs": [],
+                    "current_location": "خارج القاعة",
+                    "ticket_assigned": "الأصلية",
+                    "risk_score": 0.0,
+                    "last_update": get_saudi_time().strftime("%Y-%m-%d %H:%M:%S")
+                }
+    except Exception as integrity_error:
+        pass
+
+# تشغيل الدالة المركزية عند الإقلاع
+verify_monumental_system_integrity_bounds()
 def send_telegram_notification(message):
     """دالة مطورة لإرسال التنبيهات الفورية لهاتف المشرف عبر التليجرام مرة واحدة فقط"""
     # تهيئة ذاكرة منع التكرار في الجلسة إن لم تكن موجودة
@@ -383,6 +436,8 @@ def process_and_verify_scanned_code_extended(raw_input_payload, user_context="st
     GLOBAL_SERVER_CORE_DATA["staff_session_scans"] += 1
     
     add_log_transaction_extended(normalized_code_string, "مصرح بالدخول", "تم تأكيد صلاحية الكارت وإثبات الحضور بنجاح وصفرية المخاطر", user_context)
+    # ضعه في نهاية دالة المعالجة والتدقيق بعد تغيير حالة الطالب
+    save_system_data_backup()
     return "success_entry", f"🟢 مصرح بالدخول! تم تسجيل حضور رقم الهوية ({normalized_code_string}) بنجاح."
 
 
